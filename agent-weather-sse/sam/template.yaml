@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Weather agent (Strands harness + Express/SSE) deployed as an AWS Lambda Web
+  Function. The code package must already live in a versioned S3 bucket; see
+  this folder's README for the package-and-upload step.
+
+Parameters:
+  CodeBucket:
+    Type: String
+    Description: Versioned S3 bucket that holds the deployment package (.zip).
+  CodeKey:
+    Type: String
+    Default: weather-agent/app.zip
+    Description: S3 key of the deployment package inside CodeBucket.
+  CodeVersion:
+    Type: String
+    Description: S3 object version id of the deployment package.
+  SessionBucket:
+    Type: String
+    Description: S3 bucket where the agent persists conversation sessions.
+  SessionPrefix:
+    Type: String
+    Default: weather-agent/
+    Description: Key prefix for session objects in SessionBucket.
+  BedrockModelId:
+    Type: String
+    Default: us.amazon.nova-2-lite-v1:0
+    Description: Amazon Bedrock model id (Amazon Nova).
+
+Resources:
+  # Log groups declared up front with 1-day retention (the platform would
+  # otherwise create them with "never expire"). A Web Function uses two: the
+  # centralized one and its ".local" companion.
+  WeatherAgentLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/web/weather-agent
+      RetentionInDays: 1
+  WeatherAgentLogGroupLocal:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/web/weather-agent.local
+      RetentionInDays: 1
+
+  # Least-privilege execution role: CloudWatch Logs + Bedrock (Nova) + S3 sessions.
+  WeatherAgentRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: weather-agent-bedrock-s3
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: BedrockInvokeNova
+                Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource: '*'
+              - Sid: S3SessionObjects
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                Resource: !Sub arn:aws:s3:::${SessionBucket}/*
+              - Sid: S3SessionBucketList
+                Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub arn:aws:s3:::${SessionBucket}
+
+  WeatherAgent:
+    Type: AWS::Serverless::WebFunction
+    DependsOn:
+      - WeatherAgentLogGroup
+      - WeatherAgentLogGroupLocal
+    Properties:
+      FunctionName: weather-agent
+      Runtime: nodejs24.x
+      # The deployed artifact is dist/index.js (TypeScript compiled to dist/).
+      EntryPoint: dist/index.js
+      # Public endpoint: the app does not implement its own auth in this demo.
+      AuthType: ApplicationManaged
+      AutoDeploymentMode: LatestRevision
+      Timeout: 300
+      ExecutionRoleArn: !GetAtt WeatherAgentRole.Arn
+      LoggingConfig:
+        LogGroup: !Ref WeatherAgentLogGroup
+      CodeUri:
+        Bucket: !Ref CodeBucket
+        Key: !Ref CodeKey
+        Version: !Ref CodeVersion
+      EnvironmentVariables:
+        BEDROCK_MODEL_ID: !Ref BedrockModelId
+        SESSION_BUCKET: !Ref SessionBucket
+        SESSION_PREFIX: !Ref SessionPrefix
+
+Outputs:
+  EndpointUrl:
+    Description: Public HTTPS URL of the Web Function endpoint.
+    Value: !Sub https://${WeatherAgentEndpoint.DomainName}
+  FunctionArn:
+    Description: ARN of the Web Function.
+    Value: !GetAtt WeatherAgent.FunctionArn

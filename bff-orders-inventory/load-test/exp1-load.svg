@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" font-family="Segoe UI, Arial, sans-serif">
+  <rect x="0" y="0" width="900" height="390" fill="#ffffff"/>
+  <text x="450" y="32" text-anchor="middle" font-size="20" font-weight="700" fill="#1a2b3c">Experiment 1 - Load test (500 orders, 50 in parallel)</text>
+  <text x="450" y="54" text-anchor="middle" font-size="14" fill="#667">Billed active CPU is tiny next to how long the environments stayed alive</text>
+  <line x1="120" y1="300" x2="820" y2="300" stroke="#334" stroke-width="2"/>
+  <rect x="170" y="90" width="140" height="210" rx="4" fill="#8b5cf6"/>
+  <text x="240" y="80" text-anchor="middle" font-size="18" font-weight="700" fill="#1a2b3c">~24,461 s</text>
+  <text x="240" y="322" text-anchor="middle" font-size="13" fill="#334">Env serving life</text>
+  <text x="240" y="340" text-anchor="middle" font-size="13" fill="#334">(summed, 61 envs)</text>
+  <rect x="420" y="294" width="140" height="6" rx="1" fill="#f59e0b"/>
+  <text x="490" y="285" text-anchor="middle" font-size="18" font-weight="700" fill="#1a2b3c">~49 s</text>
+  <text x="490" y="322" text-anchor="middle" font-size="13" fill="#334">Active CPU</text>
+  <text x="490" y="340" text-anchor="middle" font-size="13" fill="#334">(serving, billed)</text>
+  <rect x="670" y="297" width="140" height="3" rx="1" fill="#ef4444"/>
+  <text x="740" y="285" text-anchor="middle" font-size="18" font-weight="700" fill="#1a2b3c">~22 s</text>
+  <text x="740" y="322" text-anchor="middle" font-size="13" fill="#334">Startup CPU</text>
+  <text x="740" y="340" text-anchor="middle" font-size="13" fill="#334">(61 cold starts)</text>
+  <text x="450" y="366" text-anchor="middle" font-size="13" fill="#1a2b3c">Active CPU is ~0.2% of serving life. The load ran 15 s; most of that life is idle until scale-to-zero,</text>
+  <text x="450" y="384" text-anchor="middle" font-size="13" fill="#1a2b3c">not per-request I/O wait. That idle time is not billed as CPU (memory is, while the env exists).</text>
+</svg>

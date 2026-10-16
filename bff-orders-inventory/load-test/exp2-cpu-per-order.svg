@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" font-family="Segoe UI, Arial, sans-serif">
+  <rect x="0" y="0" width="900" height="400" fill="#ffffff"/>
+  <text x="450" y="32" text-anchor="middle" font-size="20" font-weight="700" fill="#1a2b3c">Experiment 2 - CPU per order (1 cold vs. 200 warm, same env)</text>
+  <text x="450" y="54" text-anchor="middle" font-size="14" fill="#667">Where the CPU of a 200-request environment goes</text>
+  <line x1="300" y1="330" x2="600" y2="330" stroke="#334" stroke-width="2"/>
+  <rect x="380" y="258" width="140" height="72" fill="#ef4444"/>
+  <rect x="380" y="90" width="140" height="168" fill="#22c55e"/>
+  <text x="540" y="300" font-size="14" font-weight="600" fill="#ef4444">Startup: ~780 ms</text>
+  <text x="540" y="320" font-size="12" fill="#667">(1 cold request)</text>
+  <text x="540" y="170" font-size="14" font-weight="600" fill="#16a34a">200 orders of work: ~1,820 ms</text>
+  <text x="540" y="190" font-size="12" fill="#667">~9 ms per warm order</text>
+  <text x="450" y="348" text-anchor="middle" font-size="13" fill="#334">Total CPU of the 200-request env: ~2,600 ms</text>
+  <text x="450" y="384" text-anchor="middle" font-size="13" fill="#1a2b3c">Marginal cost = (2,600 - 780) / 199 = ~9 ms/order. The first request of a cold env costs ~85x more.</text>
+</svg>

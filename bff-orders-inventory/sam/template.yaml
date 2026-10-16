@@ -1,0 +1,190 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Full bff-orders-inventory project in one stack: two DynamoDB tables, the
+  private inventory Web Function (IamAuth) and the public orders BFF Web
+  Function (ApplicationManaged). The orders role is granted permission to invoke
+  the inventory endpoint, and the inventory endpoint URL is wired into orders
+  automatically. Each service's code package must already live in a versioned S3
+  bucket; see this folder's README for the package-and-upload step.
+
+Parameters:
+  CodeBucket:
+    Type: String
+    Description: Versioned S3 bucket that holds both deployment packages (.zip).
+  InventoryCodeKey:
+    Type: String
+    Default: inventory/app.zip
+    Description: S3 key of the inventory deployment package.
+  InventoryCodeVersion:
+    Type: String
+    Description: S3 object version id of the inventory deployment package.
+  OrdersCodeKey:
+    Type: String
+    Default: orders/app.zip
+    Description: S3 key of the orders deployment package.
+  OrdersCodeVersion:
+    Type: String
+    Description: S3 object version id of the orders deployment package.
+
+Resources:
+  # ---------- DynamoDB tables ----------
+  InventoryTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: inventory
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: productId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: productId
+          KeyType: HASH
+
+  OrdersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: orders
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
+  # ---------- inventory service (private, IamAuth) ----------
+  # Log groups declared up front with 1-day retention (the platform would
+  # otherwise create them with "never expire"). A Web Function uses two: the
+  # centralized one and its ".local" companion.
+  InventoryLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/web/inventory
+      RetentionInDays: 1
+  InventoryLogGroupLocal:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/web/inventory.local
+      RetentionInDays: 1
+
+  InventoryFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: inventory-dynamodb
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: DynamoDBInventory
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:PutItem
+                Resource: !GetAtt InventoryTable.Arn
+
+  InventoryFunction:
+    Type: AWS::Serverless::WebFunction
+    DependsOn:
+      - InventoryLogGroup
+      - InventoryLogGroupLocal
+    Properties:
+      FunctionName: inventory
+      Runtime: nodejs24.x
+      EntryPoint: dist/index.js
+      AuthType: IamAuth
+      AutoDeploymentMode: LatestRevision
+      Timeout: 30
+      ExecutionRoleArn: !GetAtt InventoryFunctionRole.Arn
+      LoggingConfig:
+        LogGroup: !Ref InventoryLogGroup
+      CodeUri:
+        Bucket: !Ref CodeBucket
+        Key: !Ref InventoryCodeKey
+        Version: !Ref InventoryCodeVersion
+      EnvironmentVariables:
+        INVENTORY_TABLE: !Ref InventoryTable
+
+  # ---------- orders service (public BFF, ApplicationManaged) ----------
+  OrdersLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/web/orders
+      RetentionInDays: 1
+  OrdersLogGroupLocal:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/web/orders.local
+      RetentionInDays: 1
+
+  OrdersFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: orders-permissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: DynamoDBOrders
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                Resource: !GetAtt OrdersTable.Arn
+              - Sid: InvokeInventoryEndpoint
+                Effect: Allow
+                Action: lambda:InvokeWebFunctionEndpoint
+                # Endpoint ARN of the inventory Web Function (default endpoint
+                # name is "prod" for the SAM resource).
+                Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:web-function/inventory/endpoint/prod
+
+  OrdersFunction:
+    Type: AWS::Serverless::WebFunction
+    DependsOn:
+      - OrdersLogGroup
+      - OrdersLogGroupLocal
+    Properties:
+      FunctionName: orders
+      Runtime: nodejs24.x
+      EntryPoint: dist/index.js
+      AuthType: ApplicationManaged
+      AutoDeploymentMode: LatestRevision
+      Timeout: 30
+      ExecutionRoleArn: !GetAtt OrdersFunctionRole.Arn
+      LoggingConfig:
+        LogGroup: !Ref OrdersLogGroup
+      CodeUri:
+        Bucket: !Ref CodeBucket
+        Key: !Ref OrdersCodeKey
+        Version: !Ref OrdersCodeVersion
+      EnvironmentVariables:
+        ORDERS_TABLE: !Ref OrdersTable
+        # Inventory endpoint URL wired in automatically — no manual step.
+        INVENTORY_ENDPOINT: !Sub https://${InventoryFunctionEndpoint.DomainName}
+
+Outputs:
+  OrdersEndpointUrl:
+    Description: Public HTTPS URL of the orders BFF (call this one).
+    Value: !Sub https://${OrdersFunctionEndpoint.DomainName}
+  InventoryEndpointUrl:
+    Description: HTTPS URL of the private inventory endpoint (IamAuth).
+    Value: !Sub https://${InventoryFunctionEndpoint.DomainName}

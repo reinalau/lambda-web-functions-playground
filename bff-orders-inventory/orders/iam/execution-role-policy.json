@@ -1,0 +1,30 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloudWatchLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:<region>:<account-id>:*"
+    },
+    {
+      "Sid": "DynamoDBOrders",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem"
+      ],
+      "Resource": "arn:aws:dynamodb:<region>:<account-id>:table/orders"
+    },
+    {
+      "Sid": "InvokeInventoryEndpoint",
+      "Effect": "Allow",
+      "Action": "lambda:InvokeWebFunctionEndpoint",
+      "Resource": "<INVENTORY_ENDPOINT_ARN>"
+    }
+  ]
+}

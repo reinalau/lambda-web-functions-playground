@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Local session state (agent LocalFileStorage fallback)
+.sessions/
+
+# Agent/workflow task artifacts
+.agent/
+.agents/
+
+# Deployment packages produced by sam/package.sh
+*.zip
+
+# npm/tooling
+npm-debug.log*
+.npm/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+
+draft/

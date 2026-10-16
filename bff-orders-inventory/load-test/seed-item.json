@@ -1,0 +1,5 @@
+{
+  "productId": { "S": "load-test" },
+  "productName": { "S": "Load test product" },
+  "available": { "N": "1000000" }
+}

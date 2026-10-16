@@ -1,0 +1,20 @@
+version = 0.1
+
+# Replace the parameter_overrides values with your own before deploying.
+# CodeBucket must be versioned; CodeVersion is the S3 object version id of the
+# uploaded app.zip (see this folder's README for the package-and-upload step).
+
+[default.deploy.parameters]
+stack_name = "weather-agent"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"
+resolve_s3 = true
+confirm_changeset = true
+parameter_overrides = [
+  "CodeBucket=lambdawebfunction-laub",
+  "CodeKey=weather-agent/app.zip",
+  "CodeVersion=REPLACE_WITH_OBJECT_VERSION_ID",
+  "SessionBucket=sessions-llb",
+  "SessionPrefix=weather-agent/",
+  "BedrockModelId=us.amazon.nova-2-lite-v1:0",
+]

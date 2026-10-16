@@ -1,0 +1,28 @@
+{
+  "name": "orders",
+  "version": "1.0.0",
+  "description": "Upstream orders BFF Lambda Web Function (ApplicationManaged, public): Express HTTP service that reserves stock in the inventory service with a SigV4-signed call and persists orders to DynamoDB.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-crypto/sha256-js": "^5",
+    "@aws-sdk/client-dynamodb": "^3",
+    "@aws-sdk/credential-provider-node": "^3",
+    "@aws-sdk/lib-dynamodb": "^3",
+    "@aws-sdk/protocol-http": "^3",
+    "@aws-sdk/signature-v4": "^3",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "agent-weather-sse",
+  "version": "1.0.0",
+  "description": "Weather AI agent built with the Strands harness, served over SSE from an AWS Lambda Web Function.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1152.0",
+    "@modelcontextprotocol/client": "^2.3.1",
+    "@strands-agents/harness": "^0.2.0",
+    "@strands-agents/sdk": "^1.20.0",
+    "express": "^4.21.2",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
